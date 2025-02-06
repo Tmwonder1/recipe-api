@@ -1,0 +1,24 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Recipe App</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}">
+</head>
+<body>
+    <h1>Recipe App 🍴</h1>
+    <input type="text" id="searchInput" class="search-bar" placeholder="Search by cuisine or ingredients..." onkeyup="searchRecipes()">
+    
+    <div id="recipes"></div>
+
+    <!-- Add/Edit Recipe Form -->
+    <div id="addRecipeForm" style="display: none;">
+        <input type="text" id="recipeName" placeholder="Recipe Name">
+        <input type="text" id="ingredients" placeholder="Ingredients (comma-separated)">
+        <input type="text" id="cuisine" placeholder="Cuisine">
+        <button onclick="saveRecipe()">Save Recipe</button>
+    </div>
+
+    <button onclick="toggleAddForm()">Add New Recipe</button>
+    <script src="{{ url_for('static', filename='script.js') }}"></script>
+</body>
+</html>

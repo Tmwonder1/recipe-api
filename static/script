@@ -1,0 +1,137 @@
+let token = localStorage.getItem('token');
+
+// Fetch and display recipes
+async function fetchRecipes() {
+    const response = await fetch('http://127.0.0.1:5000/recipes');
+    const data = await response.json();
+    displayRecipes(data.recipes);
+}
+
+function displayRecipes(recipes) {
+    const recipesDiv = document.getElementById('recipes');
+    recipesDiv.innerHTML = recipes.map(recipe => `
+        <div class="recipe">
+            <h3>${recipe.name}</h3>
+            <p>Ingredients: ${recipe.ingredients.join(', ')}</p>
+            <p>Cuisine: ${recipe.cuisine}</p>
+            <div class="star-rating">
+                ${[1, 2, 3, 4, 5].map(star => `
+                    <span onclick="rateRecipe(${recipe.id}, ${star})">★</span>
+                `).join('')}
+            </div>
+            <p>Average Rating: ${recipe.average_rating.toFixed(1)}</p>
+            <button onclick="deleteRecipe(${recipe.id})">Delete</button>
+            <button onclick="editRecipe(${recipe.id})">Edit</button>
+        </div>
+    `).join('');
+}
+
+// Auth functions
+async function login() {
+    const username = document.getElementById('username').value;
+    const password = document.getElementById('password').value;
+    const response = await fetch('http://127.0.0.1:5000/login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ username, password })
+    });
+    const data = await response.json();
+    if (response.ok) {
+        localStorage.setItem('token', data.access_token);
+        window.location.href = '/';
+    } else {
+        alert(data.error);
+    }
+}
+
+async function register() {
+    const username = document.getElementById('username').value;
+    const password = document.getElementById('password').value;
+    const response = await fetch('http://127.0.0.1:5000/register', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ username, password })
+    });
+    if (response.ok) {
+        alert('User created! Please login.');
+    } else {
+        const error = await response.json();
+        alert(error.error);
+    }
+}
+
+// Recipe CRUD
+function toggleAddForm() {
+    const form = document.getElementById('addRecipeForm');
+    form.style.display = form.style.display === 'none' ? 'block' : 'none';
+}
+
+async function saveRecipe(recipeId = null) {
+    const name = document.getElementById('recipeName').value;
+    const ingredients = document.getElementById('ingredients').value.split(',').map(i => i.trim());
+    const cuisine = document.getElementById('cuisine').value;
+
+    const method = recipeId ? 'PUT' : 'POST';
+    const url = recipeId ? `http://127.0.0.1:5000/recipes/${recipeId}` : 'http://127.0.0.1:5000/recipes';
+
+    const response = await fetch(url, {
+        method: method,
+        headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({ name, ingredients, cuisine })
+    });
+
+    if (response.ok) {
+        fetchRecipes();
+        toggleAddForm();
+    }
+}
+
+async function deleteRecipe(recipeId) {
+    const confirmDelete = confirm('Delete this recipe?');
+    if (!confirmDelete) return;
+
+    const response = await fetch(`http://127.0.0.1:5000/recipes/${recipeId}`, {
+        method: 'DELETE',
+        headers: { 'Authorization': `Bearer ${token}` }
+    });
+
+    if (response.ok) fetchRecipes();
+}
+
+function editRecipe(recipeId) {
+    const recipe = data.recipes.find(r => r.id === recipeId);
+    document.getElementById('recipeName').value = recipe.name;
+    document.getElementById('ingredients').value = recipe.ingredients.join(', ');
+    document.getElementById('cuisine').value = recipe.cuisine;
+    toggleAddForm();
+}
+
+// Search
+async function searchRecipes() {
+    const query = document.getElementById('searchInput').value;
+    const response = await fetch(`http://127.0.0.1:5000/recipes/search?q=${query}`);
+    const data = await response.json();
+    displayRecipes(data.recipes);
+}
+
+// Rate recipe
+async function rateRecipe(recipeId, rating) {
+    const response = await fetch(`http://127.0.0.1:5000/recipes/${recipeId}/rate`, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({ rating })
+    });
+    if (response.ok) fetchRecipes();
+}
+
+// Initialize
+if (window.location.pathname === '/') {
+    if (!token) window.location.href = '/login';
+    else fetchRecipes();
+}
